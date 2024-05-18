@@ -3,6 +3,7 @@ package com.example.map_google
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentValues.TAG
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
@@ -91,6 +92,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             // b_isOn = !b_isOn
             // 카메라 재이동
             refreshCarmera()
+        }
+
+        val shareButton: Button = findViewById(R.id.shareButton)
+        shareButton.setOnClickListener {
+            val intent = Intent(Intent.ACTION_SEND)
+            intent.type = "text/plain"
+
+            val url = "exampleURL"
+            val content = "링크를 클릭하여 위치 공유에 참여하세요"
+            intent.putExtra(Intent.EXTRA_TEXT, "$content\n\n$url")
+
+            val chooserTitle = "링크 공유하기"
+            startActivity(Intent.createChooser(intent, chooserTitle))
         }
         
     }
