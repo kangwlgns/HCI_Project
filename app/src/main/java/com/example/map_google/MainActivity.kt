@@ -173,6 +173,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // 처음 마커를 추가하는 경우
         if (currentLocationMarker == null) {
             val markerOptions = MarkerOptions().position(latLng).title("나")
+            // 이미지 설정
+            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.my_location_icon))
             currentLocationMarker = mGoogleMap.addMarker(markerOptions)
             currentLocationMarker?.showInfoWindow() // 항상 title이 보이도록 설정
         } else {
@@ -188,7 +190,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
     // "내 위치" 버튼을 눌렀을때 실행
     fun refreshCarmera() {
-        val cameraPosition = CameraPosition.Builder().target(current_latLng).zoom(15.0f).build()
+        if( setting_initview ) { return; } // 위치 수신 전 눌렀을때 꺼짐 방지
+        val cameraPosition = CameraPosition.Builder().target(current_latLng).zoom(mGoogleMap.getCameraPosition().zoom).build()
         mGoogleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
     }
     fun setOtherlocation() {
@@ -217,6 +220,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                             if (other_currentLocationMarker == null) {
                                 // 상대편 -> DB에서 가져온 이름으로 변경
                                 val markerOptions = MarkerOptions().position(other_latLng).title(name)
+                                // 이미지 설정
+                                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.other_location_icon))
                                 other_currentLocationMarker = mGoogleMap.addMarker(markerOptions)
                                 other_currentLocationMarker?.showInfoWindow() // 항상 title이 보이도록 설정
                             } else {
