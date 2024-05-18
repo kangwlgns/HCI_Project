@@ -7,11 +7,18 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/button3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Button"
+        android:id="@+id/enterButton"
+        android:layout_width="260dp"
+        android:layout_height="74dp"
+        android:backgroundTint="#7559B2"
+        android:paddingBottom="7dp"
+        android:drawableTop="@drawable/send_24px"
+        android:fontFamily="@font/jua"
+        android:text="위치 공유방 만들기"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
-        tools:layout_editor_absoluteY="452dp" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.743" />
 </androidx.constraintlayout.widget.ConstraintLayout>
