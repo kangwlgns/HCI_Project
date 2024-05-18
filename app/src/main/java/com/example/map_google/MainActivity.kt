@@ -41,6 +41,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.firestore
+import android.content.Intent
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -64,9 +65,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // 내위치 정보
     lateinit var current_latLng: LatLng
-    // 내 위치 고정 버튼 표시
+    // "내 위치 고정" 버튼 표시
     private lateinit var toggleButton: FloatingActionButton
-    private var b_isOn = true // 초기 상태 설정
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -99,10 +99,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // 버튼 처리 코드
         toggleButton = findViewById(R.id.toggleButton)
         toggleButton.setOnClickListener {
-            // 버튼 클릭 시 상태 전환
-            // b_isOn = !b_isOn
             // 카메라 재이동
             refreshCarmera()
+        }
+        val shareButton: Button = findViewById(R.id.shareButton)
+        shareButton.setOnClickListener {
+            val intent = Intent(Intent.ACTION_SEND)
+            intent.type = "text/plain"
+
+            val url = "exampleURL"
+            val content = "링크를 클릭하여 위치 공유에 참여하세요"
+            intent.putExtra(Intent.EXTRA_TEXT, "$content\n\n$url")
+
+            val chooserTitle = "링크 공유하기"
+            startActivity(Intent.createChooser(intent, chooserTitle))
         }
 
         // 타이머 시간 설정 후 시작
@@ -224,16 +234,24 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     //
     var setting_initview = true
 
+
+    fun refreshCarmera() {
+        if( setting_initview ) { return; } // 위치 수신 전 눌렀을때 꺼짐 방지
+        // 현재 카메라 줌으로 유지
+        val cameraPosition = CameraPosition.Builder().target(current_latLng).zoom(mGoogleMap.getCameraPosition().zoom).build()
+        mGoogleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+    }
     // 마커 객체를 저장할 변수를 선언
     var currentLocationMarker: Marker? = null
     var other_currentLocationMarker: Marker? = null
-
     fun setLastLocation(lastLocation: Location) {
         val latLng = LatLng(lastLocation.latitude, lastLocation.longitude)
         current_latLng = latLng
         // 처음 마커를 추가하는 경우
         if (currentLocationMarker == null) {
             val markerOptions = MarkerOptions().position(latLng).title("나")
+            // 이미지 설정
+            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.my_location_icon))
             currentLocationMarker = mGoogleMap.addMarker(markerOptions)
             currentLocationMarker?.showInfoWindow() // 항상 title이 보이도록 설정
         } else {
@@ -248,10 +266,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
     // "내 위치" 버튼을 눌렀을때 실행
-    fun refreshCarmera() {
-        val cameraPosition = CameraPosition.Builder().target(current_latLng).zoom(15.0f).build()
-        mGoogleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-    }
+
     fun setOtherlocation() {
         // 나와 상대 정보
         var my_data: Any
@@ -283,8 +298,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                                 // 상대편 -> DB에서 가져온 이름으로 변경
                                 val markerOptions =
                                     MarkerOptions().position(other_latLng).title(name)
+                                // 이미지 설정
+                                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.other_location_icon))
                                 other_currentLocationMarker = mGoogleMap.addMarker(markerOptions)
-                                other_currentLocationMarker?.showInfoWindow() // 항상 title이 보이도록 설정
+                                other_currentLocationMarker?.showInfoWindow() // 항상 title이 보이도록 설정(눌렀을때)
                             } else {
                                 // 이미 마커가 있으면 위치만 업데이트
                                 other_currentLocationMarker?.position = other_latLng
