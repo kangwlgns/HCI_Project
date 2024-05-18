@@ -3,6 +3,7 @@ package com.example.map_google
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentValues.TAG
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
@@ -105,6 +106,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             refreshCarmera()
         }
 
+        val shareButton: Button = findViewById(R.id.shareButton)
+        shareButton.setOnClickListener {
+            val intent = Intent(Intent.ACTION_SEND)
+            intent.type = "text/plain"
+
+            val url = "exampleURL"
+            val content = "링크를 클릭하여 위치 공유에 참여하세요"
+            intent.putExtra(Intent.EXTRA_TEXT, "$content\n\n$url")
+
+            val chooserTitle = "링크 공유하기"
+            startActivity(Intent.createChooser(intent, chooserTitle))
+        }
+        
         // 타이머 시간 설정 후 시작
         // TODO: 추후 이전 페이지에서 설정된 시간(분)을 가져와서 설정
         startTime = 5;
