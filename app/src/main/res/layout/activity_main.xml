@@ -32,7 +32,7 @@
                 android:layout_height="0dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintHorizontal_bias="1.0"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintVertical_bias="0.0" />
@@ -41,36 +41,69 @@
                 android:id="@+id/toggleButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="10dp"
+                android:layout_marginStart="344dp"
+                android:layout_marginBottom="16dp"
                 android:clickable="true"
                 app:backgroundTint="@color/white"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@+id/mapView"
                 app:layout_constraintTop_toBottomOf="@+id/materialButton"
+                app:layout_constraintVertical_bias="1.0"
                 app:srcCompat="@android:drawable/ic_menu_mylocation"
                 app:tint="#9800d4" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/materialButton"
-                android:layout_width="130dp"
-                android:layout_height="0dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginEnd="12dp"
-                android:layout_marginBottom="317dp"
+                android:id="@+id/add5Min"
+                android:layout_width="0dp"
+                android:layout_height="45dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="#f8f0fc"
+                android:text="5분 연장"
+                android:textColor="@color/black"
+                app:backgroundTint="@color/white"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/remainingTimeView"
                 app:strokeColor="@color/black"
                 app:strokeWidth="2px"
+                android:onClick="add5Minutes"
+                />
+
+            <TextView
+                android:id="@+id/remainingTimeView"
+                android:layout_width="100dp"
+                android:layout_height="37dp"
+
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/remaining_time"
+                android:gravity="center"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:strokeWidth="2"
+                android:strokeColor="@color/black"
+                android:text="TextView"
+                android:textColor="@color/black"
+                app:layout_constraintStart_toStartOf="@+id/mapView"
+                app:layout_constraintTop_toTopOf="@+id/mapView" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/materialButton"
+                android:layout_width="123dp"
+                android:layout_height="45dp"
+                android:layout_marginStart="172dp"
+                android:layout_marginTop="8dp"
                 android:text="나가기"
                 android:textColor="@color/black"
                 app:backgroundTint="@color/white"
                 app:icon="@drawable/exit"
                 app:iconGravity="textStart"
                 app:iconPadding="8dp"
-                app:iconSize="24dp"
+                app:iconSize="20dp"
                 app:iconTint="@color/black"
-                app:layout_constraintBottom_toTopOf="@+id/toggleButton"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintStart_toEndOf="@+id/remainingTimeView"
+                app:layout_constraintTop_toTopOf="@+id/mapView"
+                app:strokeColor="@color/black"
+                app:strokeWidth="2px" />
 
 
         </androidx.constraintlayout.widget.ConstraintLayout>
