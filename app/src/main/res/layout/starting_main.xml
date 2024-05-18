@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <Button
+        android:id="@+id/enterButton"
+        android:layout_width="260dp"
+        android:layout_height="74dp"
+        android:background="@drawable/starting_rectangle"
+        android:fontFamily="@font/jua"
+        android:drawableTop="@drawable/starting_link"
+        android:paddingTop="12dp"
+        android:text="위치 공유방 만들기"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.496"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.743" />
+
+    <FrameLayout
+        android:id="@+id/guideGroup"
+        android:layout_width="230dp"
+        android:layout_height="95dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.496"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/enterButton"
+        app:layout_constraintVertical_bias="0.10">
+
+        <ImageView
+            android:id="@+id/guideBackgroud"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/starting_guidebox"
+            android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/guideText"
+            android:layout_width="225dp"
+            android:layout_height="59.57dp"
+            android:layout_gravity="bottom"
+            android:layout_margin="2dp"
+            android:maxLines="4"
+            android:text="약속시간보다 너무 일찍 위치를 공유하면 거주지, 불필요한 이동 경로 등이 노출될 수 있으니 주의하세요"
+            android:textColor="#FFDBDBDB"
+            android:textSize="12dp" />
+
+        <ImageView
+            android:id="@+id/guideTail"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:layout_gravity="top|left"
+            android:layout_marginLeft="36dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/starting_guidetail" />
+
+        <ImageView
+            android:id="@+id/guideX"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="top|right"
+            android:layout_marginTop="13dp"
+            android:layout_marginEnd="3dp"
+            android:src="@drawable/starting_guidex" />
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
