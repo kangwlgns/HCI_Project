@@ -8,9 +8,12 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,6 +46,14 @@ import com.google.firebase.firestore.firestore
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
+    // 위치 공유시간 타이머 관련 변수들
+    private var startTime: Int = 0  // 설정시간(분)
+    private var totalTimeInMillis: Long = 0 // 설정시간(밀리초)
+    private var timeRemainingInMillis: Long = 0 // 남은시간(밀리초)
+    private lateinit var timerTextView: TextView    // 남은시간 표시부
+    private var countDownTimer: CountDownTimer? = null  // 내장 타이머 객체
+
+    // 구글맵 인스턴스
     private lateinit var mGoogleMap: GoogleMap
 
     //위치 서비스가 gps를 사용해서 위치를 확인
@@ -61,9 +72,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
-
         // activity_main을 현재 액티비티 뷰 설정
         setContentView(R.layout.activity_main)
+
         // 위치 권한 요청 결과를 처리하는 코드
         locationPermission = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
@@ -78,6 +89,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 Toast.makeText(this, "권한 승인이 필요합니다.", Toast.LENGTH_LONG).show()
             }
         }
+
         //권한 요청
         locationPermission.launch(
             arrayOf(
@@ -107,6 +119,56 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             startActivity(Intent.createChooser(intent, chooserTitle))
         }
         
+        // 타이머 시간 설정 후 시작
+        // TODO: 추후 이전 페이지에서 설정된 시간(분)을 가져와서 설정
+        startTime = 5;
+        timerTextView = findViewById(R.id.remainingTimeView)
+        startTimer()
+    }
+
+    // 타이머 시작 함수
+    fun startTimer() {
+        val startTimeInMinutes = startTime.toLong()
+        totalTimeInMillis = startTimeInMinutes * 60000 // 분을 밀리초로 변환
+        timeRemainingInMillis = totalTimeInMillis
+
+        startCountDown()
+    }
+
+    // 카운트다운 로직 함수(타이머 시작 함수에서 실행)
+    private fun startCountDown() {
+        countDownTimer?.cancel()    // 기존 타이머가 진행중이라면 취소
+
+        // 1초마다 시간을 갱신
+        countDownTimer = object : CountDownTimer(timeRemainingInMillis, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                timeRemainingInMillis = millisUntilFinished
+                updateCountDownText()
+            }
+
+            // TODO: 공유시간이 만료된 후의 로직
+            override fun onFinish() {
+                timerTextView.text = "00:00"
+            }
+        }
+
+        countDownTimer?.start()
+    }
+
+    // 남은시간을 뷰에 표시
+    private fun updateCountDownText() {
+        val minutes = (timeRemainingInMillis / 60000) % 60
+        val seconds = (timeRemainingInMillis % 60000) / 1000
+        val timeString = String.format("%02d:%02d", minutes, seconds)
+        timerTextView.text = timeString
+    }
+
+    // 시간 5분 연장 기능
+    fun add5Minutes(view: View) {
+        // 현재 남은 시간에 5분 추가 후 카운트다운 재시작
+        timeRemainingInMillis += 5 * 60000 // 5분을 밀리초로 변환하여 추가
+        startCountDown()
+        updateCountDownText()
     }
 
     // 지도 객체를 이용할 수 있는 상황이 될 때
@@ -132,7 +194,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     fun updateLocation() {
-
         val locationRequest = LocationRequest.create().apply {
             interval = 1000
             fastestInterval = 500
@@ -187,8 +248,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // 처음 마커를 추가하는 경우
         if (currentLocationMarker == null) {
             val markerOptions = MarkerOptions().position(latLng).title("나")
-            // 이미지 설정
-            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.my_location_icon))
             currentLocationMarker = mGoogleMap.addMarker(markerOptions)
             currentLocationMarker?.showInfoWindow() // 항상 title이 보이도록 설정
         } else {
@@ -204,8 +263,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
     // "내 위치" 버튼을 눌렀을때 실행
     fun refreshCarmera() {
-        if( setting_initview ) { return; } // 위치 수신 전 눌렀을때 꺼짐 방지
-        val cameraPosition = CameraPosition.Builder().target(current_latLng).zoom(mGoogleMap.getCameraPosition().zoom).build()
+        val cameraPosition = CameraPosition.Builder().target(current_latLng).zoom(15.0f).build()
         mGoogleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
     }
     fun setOtherlocation() {
@@ -216,7 +274,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // Firebase 데이터 가져오기
         val db = Firebase.firestore
         var roomData: Map<String, Any>
-        var other_data: Map<String, Any> = mapOf("coat" to "미확인", "pants" to "미확인", "lat" to 0.0, "lng" to 0.0)
+        var other_data: Map<String, Any> =
+            mapOf("coat" to "미확인", "pants" to "미확인", "lat" to 0.0, "lng" to 0.0)
         db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c").get()
             .addOnSuccessListener { document ->
                 if (document.data != null) {
@@ -229,13 +288,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
                             Log.d("상대방 정보", "${other_data}")
                             // 이부분을 DB에서 가져온 값으로 변경
-                            val other_latLng = LatLng(other_data.get("lat") as Double, other_data.get("lng") as Double)
+                            val other_latLng = LatLng(
+                                other_data.get("lat") as Double,
+                                other_data.get("lng") as Double
+                            )
                             Log.d("상대방 위치", "${other_latLng}")
                             if (other_currentLocationMarker == null) {
                                 // 상대편 -> DB에서 가져온 이름으로 변경
-                                val markerOptions = MarkerOptions().position(other_latLng).title(name)
-                                // 이미지 설정
-                                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.other_location_icon))
+                                val markerOptions =
+                                    MarkerOptions().position(other_latLng).title(name)
                                 other_currentLocationMarker = mGoogleMap.addMarker(markerOptions)
                                 other_currentLocationMarker?.showInfoWindow() // 항상 title이 보이도록 설정
                             } else {
