@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "map-google"
+rootProject.name = "HCI_Project"
 include(":app")
  

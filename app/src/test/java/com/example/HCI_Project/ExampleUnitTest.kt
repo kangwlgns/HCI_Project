@@ -1,4 +1,4 @@
-package com.example.map_google
+package com.example.HCI_Project
 
 import org.junit.Test
 

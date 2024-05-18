@@ -25,6 +25,9 @@
         <meta-data android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version"/>
 
+        <activity android:name=".StartingActivity" />
+        <activity android:name=".MakingActivity" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -34,6 +37,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+
     </application>
 
 </manifest>

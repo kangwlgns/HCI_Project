@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.map_google"
+    namespace = "com.example.HCI_Project"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.map_google"
+        applicationId = "com.example.HCI_Project"
         minSdk = 21
         targetSdk = 34
         versionCode = 1
