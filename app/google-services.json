@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "527845509455",
+    "project_id": "hci-project-2820b",
+    "storage_bucket": "hci-project-2820b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:527845509455:android:d60175db6b0ca53c0a9d3a",
+        "android_client_info": {
+          "package_name": "com.example.map_google"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdoJtkm4Ro5LhAv-kL2aPvMssYKLpNBCk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
