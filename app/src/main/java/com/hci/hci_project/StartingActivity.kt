@@ -5,23 +5,23 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import com.hci.hci_project.databinding.StartingMainBinding
+import android.widget.Button
+import android.widget.FrameLayout
 
 class StartingActivity : AppCompatActivity() {
-    val binding by lazy { StartingMainBinding.inflate(layoutInflater) }
     val TAG ="HCI"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(binding.root)
+        setContentView(R.layout.starting_main)
 
-        binding.enterButton.setOnClickListener {
+        findViewById<Button>(R.id.enterButton).setOnClickListener {
             val intent = Intent(this, MakingActivity::class.java)
             startActivity(intent);
         }
 
-        binding.guideX.setOnClickListener {
-            binding.guideGroup.visibility = View.INVISIBLE
+        findViewById<Button>(R.id.guideX).setOnClickListener {
+            findViewById<FrameLayout>(R.id.guideGroup).visibility = View.INVISIBLE
         }
     }
 }

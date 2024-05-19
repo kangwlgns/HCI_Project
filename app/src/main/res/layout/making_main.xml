@@ -1,8 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <FrameLayout
+        android:id="@+id/nickNameGroup"
+        android:layout_width="294dp"
+        android:layout_height="81dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.11">
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="21dp"
+            android:text="표시할 닉네임"
+            android:gravity="center_horizontal"
+            android:fontFamily="@font/jua"
+            android:textColor="@color/black"
+            android:layout_marginTop="10dp"/>
+
+        <EditText
+            android:id="@+id/nickName"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/making_nickname"
+            android:text="익명의 사용자 1"
+            android:textAlignment="center"
+            android:textColor="#9E00FF"
+            android:textStyle="bold"
+            android:textSize="30dp"
+            tools:ignore="RtlCompat" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/informationGroup"
+        android:layout_width="308dp"
+        android:layout_height="228dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/nickNameGroup"
+        app:layout_constraintVertical_bias="0.05">
+
+        <TextView
+            android:layout_width="137dp"
+            android:layout_height="22dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginStart="5dp"
+            android:text="성별을 알려주세요"
+            android:fontFamily="@font/jua"
+            android:textColor="@color/black"
+            android:textSize="18dp" />
+
+        <Button
+            android:id="@+id/buttonMan"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="end"
+            android:layout_marginEnd="90dp"
+            android:background="@drawable/making_male_off"
+            />
+
+        <Button
+            android:id="@+id/buttonWoman"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="end"
+            android:background="@drawable/making_female_off"/>
+
+        <FrameLayout
+            android:id="@+id/clothesIcon"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center|start"
+            android:background="@drawable/making_clothes"
+            />
+
+        <FrameLayout
+            android:id="@+id/pantsIcon"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/making_pants"
+            />
+
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/enterButton"
+        android:layout_width="260dp"
+        android:layout_height="74dp"
+        android:background="@drawable/starting_rectangle"
+        android:fontFamily="@font/jua"
+        android:drawableTop="@drawable/starting_link"
+        android:paddingTop="12dp"
+        android:text="적용하고 입장하기"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.496"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.743" />
 </androidx.constraintlayout.widget.ConstraintLayout>
