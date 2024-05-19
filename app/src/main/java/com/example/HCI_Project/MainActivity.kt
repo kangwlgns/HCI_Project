@@ -66,6 +66,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.w3c.dom.Text
 import kotlin.math.acos
 import kotlin.math.cos
 import kotlin.math.sin
@@ -80,6 +81,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var roomData: Map<String, Object>
 
     // 상하의 정보 뷰
+    private lateinit var myNameView: TextView
+    private lateinit var partnerNameView: TextView
     private lateinit var myCoatTextView: TextView
     private lateinit var myPantsTextView: TextView
     private lateinit var partnerCoatTextView: TextView
@@ -209,7 +212,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
                         // 수신한 데이터 처리
 
-                        if (receivedString == "Hello") { //수정이 필요함
+                        if (receivedString == roomId) { //수정이 필요함
                             if (canVibrate) {
                                 vibratePhone() //진동 일으킴
                                 Toast.makeText(this@MainActivity, "근처에 사용자가 존재합니다.", Toast.LENGTH_SHORT).show()
@@ -346,10 +349,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     // "내 위치 고정" 버튼 표시
     private lateinit var toggleButton: FloatingActionButton
 
+    // 내 닉네임
+    lateinit var myNickname: String
+
+    // 방 ID
+    lateinit var roomId: String
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // activity_main을 현재 액티비티 뷰 설정
         setContentView(R.layout.activity_main)
+
+        myNameView = findViewById(R.id.myName)
+        partnerNameView = findViewById(R.id.partnerName)
 
         // BluetoothAdapter 초기화
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -371,10 +384,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             startAdvertising()
             scanDevice(true)
         }
+        // 방 ID
+        roomId = intent.getStringExtra("ROOM_ID").toString()
+
+        // 내 닉네임
+        myNickname = intent.getStringExtra("NICKNAME").toString()
+        myNameView.text = myNickname
 
         // 주기적으로 방 정보를 받아오기
         job = startRepeatingJob(5000L) {
-            fetchDataFromFirestore()
+            if(roomId !== null) {
+                fetchDataFromFirestore(roomId)
+            }
         }
 
         // 나, 상대방 상하의 뷰
@@ -450,11 +471,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         // 타이머 시간 설정 후 시작
         // TODO: 추후 이전 페이지에서 설정된 시간(분)을 가져와서 설정
-        startTime = 5;
+        startTime = intent.getStringExtra("TIME")?.toInt() ?: 5;
         timerTextView = findViewById(R.id.remainingTimeView)
         startTimer()
-
-
     }
 
     override fun onDestroy() {
@@ -464,15 +483,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         job.cancel()
     }
 
-    private fun fetchDataFromFirestore() {
-        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c")
+    private fun fetchDataFromFirestore(roomId: String) {
+        db.collection("rooms").document(roomId)
             .get()
             .addOnSuccessListener { document ->
                 // 데이터 처리
                 roomData = document.data as Map<String, Object>
                 Log.d("방 정보", "${roomData}")
                 roomData.forEach { (name, attributes) ->
-                    if (name != "영탁") {
+                    if (name != myNickname) {
                         // 상대방 정보
                         val other_data = attributes as Map<String, Any>
                         Log.d("상대방 정보", "${other_data}")
@@ -716,10 +735,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         Log.d("내 위치정보", "위도: ${location.latitude} 경도: ${location.longitude}")
                         // DB 업데이트
                         val db = Firebase.firestore
-                        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c")
-                            .update("영탁.lat", location.latitude)
-                        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c")
-                            .update("영탁.lng", location.longitude)
+                        db.collection("rooms").document(roomId)
+                            .update("${myNickname}.lat", location.latitude)
+                        db.collection("rooms").document(roomId)
+                            .update("${myNickname}.lng", location.longitude)
                         setLastLocation(location)
                         // 추가로 상대방의 위치 정보도 세팅 (DB에서 가져옴)
                         setOtherlocation()
@@ -791,7 +810,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         var roomData: Map<String, Any>
         var other_data: Map<String, Any> =
             mapOf("coat" to "미확인", "pants" to "미확인", "lat" to 0.0, "lng" to 0.0)
-        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c").get()
+        db.collection("rooms").document(roomId).get()
             .addOnSuccessListener { document ->
                 if (document.data != null) {
                     roomData = document.data!!
@@ -799,7 +818,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     enter_partner(roomData.keys.size) // 인원수를 계산하여 에러 처리
                     roomData.forEach { (name, attributes) ->
                         Log.d("roomData", "${name}")
-                        if (name != "영탁") {
+                        if (name != myNickname) {
                             other_data = attributes as Map<String, Any>
                             Log.d("상대방 정보", "${other_data}")
 
@@ -859,7 +878,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         val data = AdvertiseData.Builder()
             .addServiceUuid(serviceUuid)
-            .addServiceData(serviceUuid, "Hello".toByteArray(Charsets.UTF_8)) // 문자열을 포함하는 데이터 추가 수정이 필요함
+            .addServiceData(serviceUuid, roomId.toByteArray(Charsets.UTF_8)) // 문자열을 포함하는 데이터 추가 수정이 필요함
             .setIncludeDeviceName(false)
             .setIncludeTxPowerLevel(false)
             .build()
