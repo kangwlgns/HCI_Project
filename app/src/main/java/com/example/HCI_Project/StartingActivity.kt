@@ -13,6 +13,7 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.example.HCI_Project.MakingActivity
 
 
 class StartingActivity : AppCompatActivity() {
@@ -37,7 +38,7 @@ class StartingActivity : AppCompatActivity() {
 
         myButton.setOnClickListener {
             // 두번째 페이지로 변경 필요
-            val intent = Intent(this, MainActivity::class.java)
+            val intent = Intent(this, MakingActivity::class.java)
             startActivity(intent)
         }
         findViewById<ImageView>(R.id.guideX).setOnClickListener {
