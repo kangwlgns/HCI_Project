@@ -1,6 +1,10 @@
 package com.example.HCI_Project
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
@@ -33,9 +37,41 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.VectorDrawable
+import android.location.LocationManager
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.ContextCompat
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
+
+    // 위치, 블루투스 활성화상태 뷰
+    private lateinit var gpsActivationView: TextView
+    private lateinit var bluetoothActivationView: TextView
+
+    // BroadcastReceiver를 정의하여 블루투스와 위치 서비스 상태 변경을 감지
+    private val bluetoothReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                ACTION_STATE_CHANGED -> {
+                    val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                    updateBluetoothViewColor(state)
+                }
+            }
+        }
+    }
+
+    private val locationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == LocationManager.PROVIDERS_CHANGED_ACTION) {
+                updateLocationViewColor()
+            }
+        }
+    }
 
     // 위치 공유시간 타이머 관련 변수들
     private var startTime: Int = 0  // 설정시간(분)
@@ -60,10 +96,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var toggleButton: FloatingActionButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
         // activity_main을 현재 액티비티 뷰 설정
         setContentView(R.layout.activity_main)
+
+        // 위치, 블루투스 활성화여부 뷰
+        gpsActivationView = findViewById(R.id.gpsActivationStatus)
+        bluetoothActivationView = findViewById(R.id.bluetoothActivationStatus)
+
+        // 초기 블루투스 상태 확인
+        val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+        updateBluetoothViewColor(bluetoothAdapter?.state ?: BluetoothAdapter.STATE_OFF)
+
+        // 초기 위치 서비스 상태 확인
+        updateLocationViewColor()
 
         // 위치 권한 요청 결과를 처리
         locationPermission = registerForActivityResult(
@@ -108,6 +154,86 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         startTime = 5;
         timerTextView = findViewById(R.id.remainingTimeView)
         startTimer()
+    }
+
+    // 위치, 블루투스 리시버 등록 및 해제
+    override fun onStart() {
+        super.onStart()
+        // 브로드캐스트 리시버 등록
+        val bluetoothFilter = IntentFilter(ACTION_STATE_CHANGED)
+        registerReceiver(bluetoothReceiver, bluetoothFilter)
+
+        val locationFilter = IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION)
+        registerReceiver(locationReceiver, locationFilter)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // 브로드캐스트 리시버 해제
+        unregisterReceiver(bluetoothReceiver)
+        unregisterReceiver(locationReceiver)
+    }
+
+    // 블루투스 활성화 여부에 따라 뷰 배경색을 변경
+    private fun updateBluetoothViewColor(state: Int) {
+        when (state) {
+            BluetoothAdapter.STATE_ON -> {
+                bluetoothActivationView.text = "ON"
+                bluetoothActivationView.setTextColor(Color.WHITE)
+                val svgDrawable = ContextCompat.getDrawable(this, R.drawable.main_bluetooth)
+                val newSvgDrawable = svgDrawable?.mutate()
+                newSvgDrawable?.setTint(ContextCompat.getColor(this, R.color.white))
+                bluetoothActivationView.setCompoundDrawablesWithIntrinsicBounds(newSvgDrawable, null, null, null)
+
+                val newDrawable = ContextCompat.getDrawable(this, R.drawable.main_access_status_active)
+                // 새로운 배경으로 설정
+                bluetoothActivationView.background = newDrawable
+            }
+
+            BluetoothAdapter.STATE_OFF, BluetoothAdapter.STATE_TURNING_OFF, BluetoothAdapter.STATE_TURNING_ON -> {
+                bluetoothActivationView.text = "OFF"
+                bluetoothActivationView.setTextColor(Color.parseColor("#5e5e5e"))
+                val svgDrawable = ContextCompat.getDrawable(this, R.drawable.main_bluetooth)
+                val newSvgDrawable = svgDrawable?.mutate()
+                newSvgDrawable?.setTint(ContextCompat.getColor(this, R.color.darkgray))
+                bluetoothActivationView.setCompoundDrawablesWithIntrinsicBounds(newSvgDrawable, null, null, null)
+
+                val newDrawable = ContextCompat.getDrawable(this, R.drawable.main_access_status_inactive)
+                // 새로운 배경으로 설정
+                bluetoothActivationView.background = newDrawable
+            }
+        }
+    }
+
+    // 위치 활성화 여부에 따라 뷰 배경색을 변경
+    private fun updateLocationViewColor() {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+        if (isGpsEnabled || isNetworkEnabled) {
+            gpsActivationView.text = "ON"
+            gpsActivationView.setTextColor(Color.WHITE)
+            val svgDrawable = ContextCompat.getDrawable(this, R.drawable.main_gps)
+            val newSvgDrawable = svgDrawable?.mutate()
+            newSvgDrawable?.setTint(ContextCompat.getColor(this, R.color.white))
+            gpsActivationView.setCompoundDrawablesWithIntrinsicBounds(newSvgDrawable, null, null, null)
+
+            val newDrawable = ContextCompat.getDrawable(this, R.drawable.main_access_status_active)
+            // 새로운 배경으로 설정
+            gpsActivationView.background = newDrawable
+        } else {
+            gpsActivationView.text = "OFF"
+            gpsActivationView.setTextColor(Color.parseColor("#5e5e5e"))
+            val svgDrawable = ContextCompat.getDrawable(this, R.drawable.main_gps)
+            val newSvgDrawable = svgDrawable?.mutate()
+            newSvgDrawable?.setTint(ContextCompat.getColor(this, R.color.darkgray))
+            gpsActivationView.setCompoundDrawablesWithIntrinsicBounds(newSvgDrawable, null, null, null)
+
+            val newDrawable = ContextCompat.getDrawable(this, R.drawable.main_access_status_inactive)
+            // 새로운 배경으로 설정
+            gpsActivationView.background = newDrawable
+        }
     }
 
     // 타이머 시작 함수
