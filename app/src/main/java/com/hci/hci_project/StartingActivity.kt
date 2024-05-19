@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ImageView
 
 class StartingActivity : AppCompatActivity() {
     val TAG ="HCI"
@@ -20,7 +21,7 @@ class StartingActivity : AppCompatActivity() {
             startActivity(intent);
         }
 
-        findViewById<Button>(R.id.guideX).setOnClickListener {
+        findViewById<ImageView>(R.id.guideX).setOnClickListener {
             findViewById<FrameLayout>(R.id.guideGroup).visibility = View.INVISIBLE
         }
     }
