@@ -1,9 +1,16 @@
 package com.example.HCI_Project
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.AdvertiseCallback
+import android.bluetooth.le.AdvertiseData
+import android.bluetooth.le.AdvertiseSettings
+import android.bluetooth.le.BluetoothLeAdvertiser
+import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.BroadcastReceiver
@@ -42,29 +49,21 @@ import com.google.firebase.firestore.firestore
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.VectorDrawable
 import android.location.LocationManager
 import android.os.Build
 import android.os.Handler
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ToggleButton
+import android.os.ParcelUuid
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.annotation.RequiresApi
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.Timer
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -88,12 +87,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     //
     private val REQUEST_ENABLE_BT = 1
     private val REQUEST_ALL_PERMISSION = 2
-    private val PERMISSIONS = arrayOf(
+    private val permissions = arrayOf(
+        Manifest.permission.BLUETOOTH,
+        Manifest.permission.BLUETOOTH_ADMIN,
         Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.BLUETOOTH_ADVERTISE,
         Manifest.permission.BLUETOOTH_SCAN,
-        Manifest.permission.BLUETOOTH_CONNECT,
+        Manifest.permission.BLUETOOTH_CONNECT
     )
     private var bluetoothAdapter: BluetoothAdapter? = null
+    private var bluetoothLeScanner: BluetoothLeScanner? = null
+    private var bluetoothLeAdvertiser: BluetoothLeAdvertiser? = null
+    private val serviceUuid = ParcelUuid.fromString("0000BBBB-0000-1000-8000-00805F9B34FB") // 자신의 서비스 UUID로 변경
 
     // BroadcastReceiver를 정의하여 블루투스와 위치 서비스 상태 변경을 감지
     private val bluetoothReceiver = object : BroadcastReceiver() {
@@ -131,8 +136,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var scanning: Boolean = false
     private var devicesArr = ArrayList<BluetoothDevice>()
     private val SCAN_PERIOD = 1000
+    private val VIBR_PERIOD = 5000
+    private var canVibrate = true
     private val handler = Handler()
-    private lateinit var viewManager: RecyclerView.LayoutManager
     private val mLeScanCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     object : ScanCallback() {
         override fun onScanFailed(errorCode: Int) {
@@ -151,11 +157,25 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         ) != PackageManager.PERMISSION_GRANTED
                     ) {
                     }
+
                     if (!devicesArr.contains(result.device) && result.device.name != null) devicesArr.add(
                         result.device
                     )
                 }
 
+            }
+        }
+        @SuppressLint("ServiceCast")
+        private fun vibratePhone() { //휴대폰 진동일으키는 함수
+            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+            // Android 버전에 따라 진동 효과를 다르게 설정
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                // Android O 이전 버전에서는 deprecated된 메서드를 사용
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(1000)
             }
         }
 
@@ -170,7 +190,33 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 ) {
                 }
                 if (!devicesArr.contains(it.device) && it.device.name != null) devicesArr.add(it.device)
-                //스캔 성공시 실행되는 함수있어야함
+                //스캔 성공시 실행되는 코드나 함수가 있어야함
+                // Advertising 데이터에 포함된 서비스 UUID 확인
+                val uuids = result.scanRecord?.serviceUuids
+                if (uuids != null && uuids.contains(serviceUuid)) {
+                    // Advertising 데이터 추출
+                    val serviceData = result.scanRecord?.getServiceData(serviceUuid)
+                    if (serviceData != null) {
+                        // 문자열과 UUID 추출
+                        val receivedString = String(serviceData, Charsets.UTF_8) // 블루투스 advertising 한 데이터 중 룸 ID 수신한 것을 UTF-8로 변환
+                        val receivedUuid = result.device?.address ?: ""
+
+                        // 수신한 데이터 처리
+
+                        if (receivedString == "Hello") { //수정이 필요함
+                            if (canVibrate) {
+                                vibratePhone() //진동 일으킴
+                                Toast.makeText(this@MainActivity, "근처에 사용자가 존재합니다.", Toast.LENGTH_SHORT).show()
+                                // 5초간 진동 및 알림 중지
+                                canVibrate = false
+                                Handler(Looper.getMainLooper()).postDelayed({
+                                    canVibrate = true
+                                }, 5000)
+                            }
+                        }
+                        Log.d("BluetoothAdvertising", "Received RoomID: $receivedString, Received UUID: $receivedUuid")
+                    }
+                }
             }
         }
     }
@@ -178,29 +224,35 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     // Bluetooth 스캔 함수를 블루투스 전통 스캔으로 변경
     private fun scanDevice(state: Boolean) {
         if (state) {
-            // 블루투스 장치 검색 시작
+            handler.postDelayed({
+                scanning = false
+                if (ActivityCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_SCAN
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                }
+                bluetoothLeScanner?.stopScan(mLeScanCallback)
+            }, SCAN_PERIOD)
+
+            scanning = true
             if (ActivityCompat.checkSelfPermission(
                     this,
                     Manifest.permission.BLUETOOTH_SCAN
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                return
             }
-            bluetoothAdapter?.startDiscovery()
-
-            // 일정 시간 후에 검색 중지
-            handler.postDelayed({
-                scanning = false
-                bluetoothAdapter?.cancelDiscovery()
-            }, SCAN_PERIOD)
-
-            // 스캔 상태 설정
-            scanning = true
-            devicesArr.clear()
+            bluetoothLeScanner?.startScan(mLeScanCallback)
         } else {
-            // 블루투스 장치 검색 중지
             scanning = false
-            bluetoothAdapter?.cancelDiscovery()
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_SCAN
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+
+            }
+            bluetoothLeScanner?.stopScan(mLeScanCallback)
         }
     }
 
@@ -277,18 +329,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // activity_main을 현재 액티비티 뷰 설정
         setContentView(R.layout.activity_main)
 
-        //
         // BluetoothAdapter 초기화
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+
+        // BluetoothAdapter 초기화
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothAdapter = bluetoothManager.adapter
+        bluetoothLeAdvertiser = bluetoothAdapter?.bluetoothLeAdvertiser
+        bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
 
         // Bluetooth 장치 검색 BroadcastReceiver 등록
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
         registerReceiver(bluetoothReceiver, filter)
 
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        viewManager = LinearLayoutManager(this)
-        //scanDevice(true) 함수 실행시 블루투스 스캔 시작
-        //
+        // 권한 확인 및 요청
+        if (!hasPermissions(this, permissions)) {
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_ALL_PERMISSION)
+        } else {
+            startAdvertising()
+            scanDevice(true)
+        }
 
         // 주기적으로 방 정보를 받아오기
         job = startRepeatingJob(5000L) {
@@ -331,7 +391,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_ADVERTISE
             )
         )
         // 내 위치 버튼 처리
@@ -429,6 +490,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     // 위치, 블루투스 리시버 등록 및 해제
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onStart() {
         super.onStart()
         // 브로드캐스트 리시버 등록
@@ -439,6 +501,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         registerReceiver(locationReceiver, locationFilter)
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onStop() {
         super.onStop()
         // 브로드캐스트 리시버 해제
@@ -720,6 +783,42 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
     }
+    private fun startAdvertising() { //블루투스 광고 함수
+        val settings = AdvertiseSettings.Builder()
+            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
+            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
+            .setConnectable(false)
+            .build()
+
+        val data = AdvertiseData.Builder()
+            .addServiceUuid(serviceUuid)
+            .addServiceData(serviceUuid, "Hello".toByteArray(Charsets.UTF_8)) // 문자열을 포함하는 데이터 추가 수정이 필요함
+            .setIncludeDeviceName(false)
+            .setIncludeTxPowerLevel(false)
+            .build()
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_ADVERTISE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            //권한 없을시 하는 코드임 일단 비워둠
+        }
+        bluetoothLeAdvertiser?.startAdvertising(settings, data, advertisingCallback)
+    }
+
+    private val advertisingCallback = object : AdvertiseCallback() {
+        override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+            Log.d(TAG, "Advertisement started successfully")
+        }
+
+        override fun onStartFailure(errorCode: Int) {
+            Log.e(TAG, "Advertisement failed to start: $errorCode")
+        }
+    }
+    companion object {
+        private const val TAG = "BluetoothAdvertisement"
+    }
 
     fun bluetoothOnOff() {
         if (bluetoothAdapter == null) {
@@ -744,6 +843,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
 }
 
-private fun Handler.postDelayed(function: () -> Boolean?, scanPeriod: Int) {
+private fun Handler.postDelayed(function: () -> Unit?, scanPeriod: Int) {
 
 }
