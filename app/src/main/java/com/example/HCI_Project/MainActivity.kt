@@ -56,6 +56,7 @@ import android.os.ParcelUuid
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
@@ -305,6 +306,21 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+    // 스마트폰 뒤로가기 버튼 처리
+    override fun onBackPressed() {
+        if(false) { super.onBackPressed() } // 에러 처리
+        // Create an AlertDialog to confirm exit
+        AlertDialog.Builder(this)
+            .setTitle("나가기")
+            .setMessage("정말 나가실 건가요? \n" +
+                    "링크를 통해서만 재입장이 가능할 수 있어요.")
+            .setPositiveButton("나가기") { dialog, which ->
+                // Handle the OK button action here
+                finishAffinity()
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
 
     // 위치 공유시간 타이머 관련 변수들
     private var startTime: Int = 0  // 설정시간(분)
@@ -417,6 +433,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             val chooserTitle = "링크 공유하기"
             startActivity(Intent.createChooser(intent, chooserTitle))
         }
+        // 나가기 버튼 처리
+        val outButton: Button = findViewById(R.id.materialButton)
+        outButton.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("나가기")
+                .setMessage("정말 나가실 건가요? \n" +
+                        "링크를 통해서만 재입장이 가능할 수 있어요.")
+                .setPositiveButton("나가기") { dialog, which ->
+                    // Handle the OK button action here
+                    finishAffinity()
+                }
+                .setNegativeButton("취소", null)
+                .show()
+        }
 
         // 타이머 시간 설정 후 시작
         // TODO: 추후 이전 페이지에서 설정된 시간(분)을 가져와서 설정
@@ -430,7 +460,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onDestroy() {
         super.onDestroy()
         // Activity가 파괴될 때 Coroutine을 취소합니다.
-
         unregisterReceiver(bluetoothReceiver) // 블루투스
         job.cancel()
     }
@@ -622,6 +651,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             // TODO: 공유시간이 만료된 후의 로직
             override fun onFinish() {
                 timerTextView.text = "00:00"
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("시간 종료")
+                    .setMessage("공유 시간이 종료되었어요. \n" +
+                            "링크를 통해서만 재입장이 가능할 수 있어요.")
+                    .setPositiveButton("나가기") { dialog, which ->
+                        // Handle the OK button action here
+                        finishAffinity()
+                    }
+                    .setNegativeButton("5분 연장하기") { dialog, which ->
+                        findViewById<Button>(R.id.add5Min).performClick()
+                    }
+                    .show()
+
             }
         }
 
