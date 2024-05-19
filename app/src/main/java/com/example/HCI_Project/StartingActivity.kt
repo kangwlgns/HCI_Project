@@ -3,6 +3,7 @@ package com.example.HCI_Project
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,6 +24,7 @@ class StartingActivity : AppCompatActivity() {
         R.drawable.starting_guideimg3,
         R.drawable.starting_guideimg4
     )
+    private var code: String = ""
 
     //starting_guidpage1
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,15 +37,30 @@ class StartingActivity : AppCompatActivity() {
 
         val myButton: Button = findViewById(R.id.enterButton)
 
+        // TODO 링크를 통해서 code 받아오기
+
+        if (code == "") {
+            code = generateRandomString(10)
+        }
+
         myButton.setOnClickListener {
             // 두번째 페이지로 변경 필요
             val intent = Intent(this, MainActivity::class.java)
+            intent.putExtra("CODE", code)
             startActivity(intent)
         }
+
         findViewById<ImageView>(R.id.guideX).setOnClickListener {
             findViewById<FrameLayout>(R.id.guideGroup).visibility = View.INVISIBLE
         }
 
+    }
+
+    fun generateRandomString(length: Int): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        return (1..length)
+            .map { chars.random() }
+            .joinToString("")
     }
 }
 
