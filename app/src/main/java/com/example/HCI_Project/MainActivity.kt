@@ -3,6 +3,9 @@ package com.example.HCI_Project
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.pm.PackageManager
@@ -43,8 +46,19 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.VectorDrawable
 import android.location.LocationManager
+import android.os.Build
+import android.os.Handler
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ToggleButton
+import androidx.annotation.RequiresApi
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -71,17 +85,161 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var gpsActivationView: TextView
     private lateinit var bluetoothActivationView: TextView
 
+    //
+    private val REQUEST_ENABLE_BT = 1
+    private val REQUEST_ALL_PERMISSION = 2
+    private val PERMISSIONS = arrayOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.BLUETOOTH_SCAN,
+        Manifest.permission.BLUETOOTH_CONNECT,
+    )
+    private var bluetoothAdapter: BluetoothAdapter? = null
+
     // BroadcastReceiver를 정의하여 블루투스와 위치 서비스 상태 변경을 감지
     private val bluetoothReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
+        override fun onReceive(context: Context, intent: Intent) {
+            val action: String? = intent.action
+            //
             when (intent?.action) {
                 ACTION_STATE_CHANGED -> {
-                    val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                    val state =
+                        intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
                     updateBluetoothViewColor(state)
+                }
+            }
+            //
+            if (BluetoothDevice.ACTION_FOUND == action) {
+                // 디바이스를 찾았을 때의 처리
+                val device: BluetoothDevice? =
+                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                device?.let {
+                    if (ActivityCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        return
+                    }
+                    if (!devicesArr.contains(it) && it.name != null) {
+                        devicesArr.add(it)
+                        //디바이스 탐지 후 실행되는 함수있었음
+                    }
                 }
             }
         }
     }
+    private var scanning: Boolean = false
+    private var devicesArr = ArrayList<BluetoothDevice>()
+    private val SCAN_PERIOD = 1000
+    private val handler = Handler()
+    private lateinit var viewManager: RecyclerView.LayoutManager
+    private val mLeScanCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    object : ScanCallback() {
+        override fun onScanFailed(errorCode: Int) {
+            super.onScanFailed(errorCode)
+            Log.d("scanCallback", "BLE Scan Failed : " + errorCode)
+        }
+
+        override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+            super.onBatchScanResults(results)
+            results?.let {
+                // results is not null
+                for (result in it) {
+                    if (ActivityCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                    }
+                    if (!devicesArr.contains(result.device) && result.device.name != null) devicesArr.add(
+                        result.device
+                    )
+                }
+
+            }
+        }
+
+        override fun onScanResult(callbackType: Int, result: ScanResult?) {
+            super.onScanResult(callbackType, result)
+            result?.let {
+                // result is not null
+                if (ActivityCompat.checkSelfPermission(
+                        this@MainActivity,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                }
+                if (!devicesArr.contains(it.device) && it.device.name != null) devicesArr.add(it.device)
+                //스캔 성공시 실행되는 함수있어야함
+            }
+        }
+    }
+
+    // Bluetooth 스캔 함수를 블루투스 전통 스캔으로 변경
+    private fun scanDevice(state: Boolean) {
+        if (state) {
+            // 블루투스 장치 검색 시작
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_SCAN
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+            bluetoothAdapter?.startDiscovery()
+
+            // 일정 시간 후에 검색 중지
+            handler.postDelayed({
+                scanning = false
+                bluetoothAdapter?.cancelDiscovery()
+            }, SCAN_PERIOD)
+
+            // 스캔 상태 설정
+            scanning = true
+            devicesArr.clear()
+        } else {
+            // 블루투스 장치 검색 중지
+            scanning = false
+            bluetoothAdapter?.cancelDiscovery()
+        }
+    }
+
+    //권한 가지고 있는지를 알려주는 함수
+    private fun hasPermissions(context: Context?, permissions: Array<String>): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
+            for (permission in permissions) {
+                if (ActivityCompat.checkSelfPermission(context, permission)
+                    != PackageManager.PERMISSION_GRANTED
+                ) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
+    // 블루투스 권한 확인
+    @RequiresApi(Build.VERSION_CODES.M)
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            REQUEST_ALL_PERMISSION -> {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Permissions granted!", Toast.LENGTH_SHORT).show()
+                } else {
+                    requestPermissions(permissions, REQUEST_ALL_PERMISSION)
+                    Toast.makeText(this, "Permissions must be granted", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
 
     private val locationReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -110,6 +268,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // 내위치 정보
     lateinit var current_latLng: LatLng
+
     // "내 위치 고정" 버튼 표시
     private lateinit var toggleButton: FloatingActionButton
 
@@ -117,6 +276,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         // activity_main을 현재 액티비티 뷰 설정
         setContentView(R.layout.activity_main)
+
+        //
+        // BluetoothAdapter 초기화
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+
+        // Bluetooth 장치 검색 BroadcastReceiver 등록
+        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        registerReceiver(bluetoothReceiver, filter)
+
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        viewManager = LinearLayoutManager(this)
+        //scanDevice(true) 함수 실행시 블루투스 스캔 시작
+        //
 
         // 주기적으로 방 정보를 받아오기
         job = startRepeatingJob(5000L) {
@@ -152,12 +324,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 Toast.makeText(this, "권한 승인이 필요합니다.", Toast.LENGTH_LONG).show()
             }
         }
-        
+
         //권한 요청
         locationPermission.launch(
             arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT
             )
         )
         // 내 위치 버튼 처리
@@ -183,10 +357,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         startTime = 5;
         timerTextView = findViewById(R.id.remainingTimeView)
         startTimer()
+
+
     }
+
     override fun onDestroy() {
         super.onDestroy()
         // Activity가 파괴될 때 Coroutine을 취소합니다.
+
+        unregisterReceiver(bluetoothReceiver) // 블루투스
         job.cancel()
     }
 
@@ -276,9 +455,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 val svgDrawable = ContextCompat.getDrawable(this, R.drawable.main_bluetooth)
                 val newSvgDrawable = svgDrawable?.mutate()
                 newSvgDrawable?.setTint(ContextCompat.getColor(this, R.color.white))
-                bluetoothActivationView.setCompoundDrawablesWithIntrinsicBounds(newSvgDrawable, null, null, null)
+                bluetoothActivationView.setCompoundDrawablesWithIntrinsicBounds(
+                    newSvgDrawable,
+                    null,
+                    null,
+                    null
+                )
 
-                val newDrawable = ContextCompat.getDrawable(this, R.drawable.main_access_status_active)
+                val newDrawable =
+                    ContextCompat.getDrawable(this, R.drawable.main_access_status_active)
                 // 새로운 배경으로 설정
                 bluetoothActivationView.background = newDrawable
             }
@@ -289,9 +474,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 val svgDrawable = ContextCompat.getDrawable(this, R.drawable.main_bluetooth)
                 val newSvgDrawable = svgDrawable?.mutate()
                 newSvgDrawable?.setTint(ContextCompat.getColor(this, R.color.darkgray))
-                bluetoothActivationView.setCompoundDrawablesWithIntrinsicBounds(newSvgDrawable, null, null, null)
+                bluetoothActivationView.setCompoundDrawablesWithIntrinsicBounds(
+                    newSvgDrawable,
+                    null,
+                    null,
+                    null
+                )
 
-                val newDrawable = ContextCompat.getDrawable(this, R.drawable.main_access_status_inactive)
+                val newDrawable =
+                    ContextCompat.getDrawable(this, R.drawable.main_access_status_inactive)
                 // 새로운 배경으로 설정
                 bluetoothActivationView.background = newDrawable
             }
@@ -310,7 +501,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             val svgDrawable = ContextCompat.getDrawable(this, R.drawable.main_gps)
             val newSvgDrawable = svgDrawable?.mutate()
             newSvgDrawable?.setTint(ContextCompat.getColor(this, R.color.white))
-            gpsActivationView.setCompoundDrawablesWithIntrinsicBounds(newSvgDrawable, null, null, null)
+            gpsActivationView.setCompoundDrawablesWithIntrinsicBounds(
+                newSvgDrawable,
+                null,
+                null,
+                null
+            )
 
             val newDrawable = ContextCompat.getDrawable(this, R.drawable.main_access_status_active)
             // 새로운 배경으로 설정
@@ -321,9 +517,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             val svgDrawable = ContextCompat.getDrawable(this, R.drawable.main_gps)
             val newSvgDrawable = svgDrawable?.mutate()
             newSvgDrawable?.setTint(ContextCompat.getColor(this, R.color.darkgray))
-            gpsActivationView.setCompoundDrawablesWithIntrinsicBounds(newSvgDrawable, null, null, null)
+            gpsActivationView.setCompoundDrawablesWithIntrinsicBounds(
+                newSvgDrawable,
+                null,
+                null,
+                null
+            )
 
-            val newDrawable = ContextCompat.getDrawable(this, R.drawable.main_access_status_inactive)
+            val newDrawable =
+                ContextCompat.getDrawable(this, R.drawable.main_access_status_inactive)
             // 새로운 배경으로 설정
             gpsActivationView.background = newDrawable
         }
@@ -376,7 +578,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // 지도 객체를 이용할 수 있는 상황이 될 때
     override fun onMapReady(p0: GoogleMap) {
-        
+
         val chungnam_univ = LatLng(36.36652, 127.3444)
         mGoogleMap = p0
         mGoogleMap.mapType = GoogleMap.MAP_TYPE_NORMAL // default 노말 생략 가능
@@ -386,6 +588,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(chungnam_univ, 15f))
         updateLocation()
     }
+
     // 자신의 위치 받아와 업데이트 하는 함수
     fun updateLocation() {
         val locationRequest = LocationRequest.create().apply {
@@ -402,8 +605,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         Log.d("내 위치정보", "위도: ${location.latitude} 경도: ${location.longitude}")
                         // DB 업데이트
                         val db = Firebase.firestore
-                        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c").update("영탁.lat", location.latitude)
-                        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c").update("영탁.lng", location.longitude)
+                        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c")
+                            .update("영탁.lat", location.latitude)
+                        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c")
+                            .update("영탁.lng", location.longitude)
                         setLastLocation(location)
                         // 추가로 상대방의 위치 정보도 세팅 (DB에서 가져옴)
                         setOtherlocation()
@@ -433,13 +638,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // 내 위치 버튼을 눌렀을 때 카메라 이동하는 함수
     fun refreshCarmera() {
-        if( setting_initview ) { return; } // GPS 수신 전 눌렀을 때 앱이 종료되는 현상 방지
-        val cameraPosition = CameraPosition.Builder().target(current_latLng).zoom(mGoogleMap.getCameraPosition().zoom).build() // 현재 카메라 줌을 유지 
+        if (setting_initview) {
+            return; } // GPS 수신 전 눌렀을 때 앱이 종료되는 현상 방지
+        val cameraPosition = CameraPosition.Builder().target(current_latLng)
+            .zoom(mGoogleMap.getCameraPosition().zoom).build() // 현재 카메라 줌을 유지
         mGoogleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
     }
+
     // 마커 객체를 저장할 변수를 선언
     var currentLocationMarker: Marker? = null       // 나
     var other_currentLocationMarker: Marker? = null // 상대
+
     // 나의 위치 마커를 set하는 함수
     fun setLastLocation(lastLocation: Location) {
         val latLng = LatLng(lastLocation.latitude, lastLocation.longitude)
@@ -458,6 +667,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             setting_initview = false
         }
     }
+
 
     // 상대의 위치 마커를 Set 하는 함수
     fun setOtherlocation() {
@@ -481,15 +691,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                             other_data = attributes as Map<String, Any>
 
                             Log.d("상대방 정보", "${other_data}")
+                            findViewById<TextView>(R.id.partnerStatusTextView).text =
+                                "상대방과 위치를 공유하고 있어요"
                             // 이부분을 DB에서 가져온 값으로 변경
                             val other_latLng = LatLng(
                                 other_data.get("lat") as Double,
                                 other_data.get("lng") as Double
                             )
                             Log.d("상대방 위치", "${other_latLng}")
-                            if (other_currentLocationMarker == null) { // 상대의 마커를 최초롤 세팅하는 경우
+                            if (other_currentLocationMarker == null) { // 상대의 마커를 최초로 세팅하는 경우
                                 // 상대편 -> DB에서 가져온 이름으로 변경
-                                val markerOptions = MarkerOptions().position(other_latLng).title(name)
+                                val markerOptions =
+                                    MarkerOptions().position(other_latLng).title(name)
                                 markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.main_other_location_icon)) // 이미지 설정
                                 other_currentLocationMarker = mGoogleMap.addMarker(markerOptions)
                                 other_currentLocationMarker?.showInfoWindow()
@@ -507,5 +720,30 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
     }
+
+    fun bluetoothOnOff() {
+        if (bluetoothAdapter == null) {
+            // Device doesn't support Bluetooth
+            Log.d("bluetoothAdapter", "Device doesn't support Bluetooth")
+        } else {
+            if (bluetoothAdapter?.isEnabled == false) { // 블루투스 꺼져 있으면 블루투스 활성화
+                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                if (ActivityCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                }
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+            } else { // 블루투스 켜져있으면 블루투스 비활성화
+                bluetoothAdapter?.disable()
+            }
+        }
+    }
+
+
+}
+
+private fun Handler.postDelayed(function: () -> Boolean?, scanPeriod: Int) {
 
 }
