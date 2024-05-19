@@ -18,10 +18,10 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 class StartingActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private val images = listOf(
-        R.drawable.starting_guidebox,
-        R.drawable.starting_guidetail,
-        R.drawable.starting_rectangle,
-        R.drawable.main_my_location_icon
+        R.drawable.starting_guideimg1,
+        R.drawable.starting_guideimg2,
+        R.drawable.starting_guideimg3,
+        R.drawable.starting_guideimg4
     )
 
     //starting_guidpage1
