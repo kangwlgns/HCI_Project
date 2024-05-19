@@ -48,6 +48,9 @@ dependencies {
     implementation ("com.google.android.gms:play-services-maps:18.2.0")
     // FusedLocationSource 의존성 추가 - Google Play 서비스의 FusedLocationProviderClient와 지자기, 가속도 센서를 활용해 최적의 위치를 반환하는 구현체이다.
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    // Coroutine
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.2")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

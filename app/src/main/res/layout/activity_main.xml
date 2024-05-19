@@ -93,6 +93,7 @@
                 app:strokeWidth="2px"
                 android:onClick="add5Minutes"
                 />
+
             <!-- 남은 시간 -->
             <TextView
                 android:id="@+id/remainingTimeView"
@@ -175,7 +176,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="12dp"
                 android:text="내 닉네임 (나)"
                 android:textColor="@color/black"
                 android:textStyle="bold"
@@ -216,6 +217,30 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <TextView
+                android:id="@+id/myCoat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="3dp"
+                android:text=""
+                android:textSize="13dp"
+                android:textColor="@color/darkgray"
+                app:layout_constraintStart_toEndOf="@+id/profileMe"
+                app:layout_constraintTop_toBottomOf="@+id/myName" />
+
+            <TextView
+                android:id="@+id/myPants"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="3dp"
+                android:text=""
+                android:textSize="13dp"
+                android:textColor="@color/darkgray"
+                app:layout_constraintStart_toEndOf="@+id/profileMe"
+                app:layout_constraintTop_toBottomOf="@+id/myCoat" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- TODO: 상대방 정보는 상대방이 입장하기 전까지는 보이지 않게 하기-->
@@ -242,7 +267,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="12dp"
                 android:text="상대방 닉네임"
                 android:textColor="@color/black"
                 android:textStyle="bold"
@@ -250,12 +275,37 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
+                android:id="@+id/partnerCoat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_marginTop="3dp"
+                android:text=""
+                android:textSize="13dp"
+                android:textColor="@color/darkgray"
+                app:layout_constraintStart_toEndOf="@+id/profilePartner"
+                app:layout_constraintTop_toBottomOf="@+id/partnerName" />
+
+            <TextView
+                android:id="@+id/partnerPants"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="3dp"
+                android:text=""
+                android:textSize="13dp"
+                android:textColor="@color/darkgray"
+                app:layout_constraintStart_toEndOf="@+id/profilePartner"
+                app:layout_constraintTop_toBottomOf="@+id/partnerCoat" />
+
+            <TextView
                 android:id="@+id/nearingStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="116dp"
-                android:layout_marginTop="32dp"
+                android:layout_marginStart="176dp"
+                android:layout_marginTop="36dp"
                 android:text="100m"
+                android:gravity="end"
                 android:textColor="#888"
                 android:textStyle="bold"
                 app:layout_constraintStart_toEndOf="@+id/partnerName"
