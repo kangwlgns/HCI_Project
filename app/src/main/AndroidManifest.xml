@@ -33,11 +33,11 @@
         <meta-data android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version"/>
 
-        <activity android:name=".StartingActivity" />
+        <activity android:name=".MainActivity" />
         <activity android:name=".MakingActivity" />
 
         <activity
-            android:name=".MainActivity"
+            android:name=".StartingActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
