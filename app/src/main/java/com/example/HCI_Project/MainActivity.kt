@@ -56,14 +56,18 @@ import android.os.ParcelUuid
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.annotation.RequiresApi
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.Timer
+import kotlin.math.acos
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -139,6 +143,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private val VIBR_PERIOD = 5000
     private var canVibrate = true
     private val handler = Handler()
+    private lateinit var viewManager: RecyclerView.LayoutManager
     private val mLeScanCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     object : ScanCallback() {
         override fun onScanFailed(errorCode: Int) {
@@ -320,6 +325,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // 내위치 정보
     lateinit var current_latLng: LatLng
+    lateinit var current_latLng_other: LatLng
 
     // "내 위치 고정" 버튼 표시
     private lateinit var toggleButton: FloatingActionButton
@@ -391,8 +397,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_ADVERTISE
+                Manifest.permission.BLUETOOTH_CONNECT
             )
         )
         // 내 위치 버튼 처리
@@ -442,7 +447,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         // 상대방 정보
                         val other_data = attributes as Map<String, Any>
                         Log.d("상대방 정보", "${other_data}")
-
+                        enter_partner(roomData.keys.size) // 인원수를 계산하여 처리
                         // 상대방 상하의 정보
                         partnerCoatTextView.text = "" + other_data.get("coats")
                         partnerPantsTextView.text = "" + other_data.get("pants")
@@ -635,6 +640,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     fun add5Minutes(view: View) {
         // 현재 남은 시간에 5분 추가 후 카운트다운 재시작
         timeRemainingInMillis += 5 * 60000 // 5분을 밀리초로 변환하여 추가
+        if (timeRemainingInMillis >= 60*60000) {  timeRemainingInMillis = 60*60000 }
         startCountDown()
         updateCountDownText()
     }
@@ -655,7 +661,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     // 자신의 위치 받아와 업데이트 하는 함수
     fun updateLocation() {
         val locationRequest = LocationRequest.create().apply {
-            interval = 1000
+            interval = 5000
             fastestInterval = 500
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
@@ -748,19 +754,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (document.data != null) {
                     roomData = document.data!!
                     Log.d("방 정보", "${roomData}")
+                    enter_partner(roomData.keys.size) // 인원수를 계산하여 에러 처리
                     roomData.forEach { (name, attributes) ->
                         Log.d("roomData", "${name}")
                         if (name != "영탁") {
                             other_data = attributes as Map<String, Any>
-
                             Log.d("상대방 정보", "${other_data}")
-                            findViewById<TextView>(R.id.partnerStatusTextView).text =
-                                "상대방과 위치를 공유하고 있어요"
+
                             // 이부분을 DB에서 가져온 값으로 변경
                             val other_latLng = LatLng(
                                 other_data.get("lat") as Double,
                                 other_data.get("lng") as Double
                             )
+                            current_latLng_other = other_latLng
                             Log.d("상대방 위치", "${other_latLng}")
                             if (other_currentLocationMarker == null) { // 상대의 마커를 최초로 세팅하는 경우
                                 // 상대편 -> DB에서 가져온 이름으로 변경
@@ -772,6 +778,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                             } else {// 이미 마커가 있으면 위치만 업데이트
                                 other_currentLocationMarker?.position = other_latLng
                             }
+                            var between_distance = calculateDistance(current_latLng , current_latLng_other)
+                            if(between_distance >= 1) {
+                                findViewById<TextView>(R.id.nearingStatus).text = String.format("%.2fkm", between_distance)
+                            }else {
+                                if ( between_distance*1000 > 10) {
+                                    findViewById<TextView>(R.id.nearingStatus).text =  String.format("%.0fm", between_distance*1000)
+
+                                } else {
+                                    findViewById<TextView>(R.id.nearingStatus).text =  "10m 이내"
+                                }
+                            }
                         }
                     }
                 } else {
@@ -781,7 +798,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             .addOnFailureListener { exception ->
                 println("get failed with ${exception}")
             }
-
+    }
+    fun enter_partner(num_person : Int) {
+        if( num_person == 2) {
+            findViewById<TextView>(R.id.partnerStatusTextView).text = "상대방과 위치를 공유하고 있어요"
+            findViewById<ConstraintLayout>(R.id.partnerInfoLayout).visibility= View.VISIBLE
+        }else {
+            findViewById<TextView>(R.id.partnerStatusTextView).text = "상대방의 입장을 기다리고 있어요"
+            findViewById<ConstraintLayout>(R.id.partnerInfoLayout).visibility= View.INVISIBLE
+        }
     }
     private fun startAdvertising() { //블루투스 광고 함수
         val settings = AdvertiseSettings.Builder()
@@ -840,9 +865,28 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-
 }
 
-private fun Handler.postDelayed(function: () -> Unit?, scanPeriod: Int) {
 
+// 위도 경도 거리 계산 함수
+fun calculateDistance(my_latLng : LatLng, your_latLng_other : LatLng): Double {
+    var latitude1 = my_latLng.latitude
+    var latitude2 = your_latLng_other.latitude
+    var longitude1 = my_latLng.longitude
+    var longitude2 = your_latLng_other.longitude
+    val earthRadius = 6371 // Earth's radius in kilometers
+
+    val deltaLatitude = Math.toRadians(90 - latitude2) - Math.toRadians(90 - latitude1)
+    val deltaLongitude = Math.toRadians(longitude1) - Math.toRadians(longitude2)
+
+    val distance = earthRadius * acos(
+        cos(Math.toRadians(90 - latitude1)) * cos(Math.toRadians(90 - latitude2)) +
+                sin(Math.toRadians(90 - latitude1)) * sin(Math.toRadians(90 - latitude2)) * cos(deltaLongitude)
+    )
+
+    return distance
+}
+
+
+private fun Handler.postDelayed(function: () -> Unit?, scanPeriod: Int) {
 }

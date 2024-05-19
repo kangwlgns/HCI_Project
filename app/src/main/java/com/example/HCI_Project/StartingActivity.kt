@@ -24,8 +24,6 @@ class StartingActivity : AppCompatActivity() {
         R.drawable.main_my_location_icon
     )
 
-
-
     //starting_guidpage1
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
