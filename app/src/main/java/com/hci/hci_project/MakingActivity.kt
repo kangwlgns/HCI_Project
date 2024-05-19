@@ -15,6 +15,7 @@ class MakingActivity : AppCompatActivity() {
     val TAG = "HCHI"
     var isMale: Int = 0;
     var curTime: String = "10";
+    var code: String = "";
     val buttonStates: Array<Int> = arrayOf(
         R.drawable.making_male_on,
         R.drawable.making_male_off,
@@ -26,6 +27,8 @@ class MakingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.making_main)
+
+        // TODO room_id를 받아오자.
 
         buttons = arrayOf(
             findViewById<android.widget.Button>(com.hci.hci_project.R.id.buttonMan),
@@ -67,6 +70,8 @@ class MakingActivity : AppCompatActivity() {
             intent.putExtra("CLOTHES", findViewById<EditText>(R.id.clothesInfo).text.toString())
             intent.putExtra("PANTS", findViewById<EditText>(R.id.pantsInfo).text.toString())
             intent.putExtra("NICKNAME", findViewById<EditText>(R.id.nickName).text.toString())
+            intent.putExtra("ROOM_ID", code)
+
             startActivity(intent)
         }
 

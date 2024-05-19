@@ -16,6 +16,8 @@ class StartingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.starting_main)
 
+        // TODO 링크를 통해서 들어왔다면 room_id를 넘겨주자.
+
         findViewById<Button>(R.id.enterButton).setOnClickListener {
             val intent = Intent(this, MakingActivity::class.java)
             startActivity(intent);
