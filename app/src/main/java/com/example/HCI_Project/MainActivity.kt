@@ -45,9 +45,27 @@ import android.graphics.drawable.VectorDrawable
 import android.location.LocationManager
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
+    // Firestore instance
+    private val db = Firebase.firestore
+    private lateinit var job: Job
+
+    // 데이터베이스에서 받을 RoomData
+    private lateinit var roomData: Map<String, Object>
+
+    // 상하의 정보 뷰
+    private lateinit var myCoatTextView: TextView
+    private lateinit var myPantsTextView: TextView
+    private lateinit var partnerCoatTextView: TextView
+    private lateinit var partnerPantsTextView: TextView
 
     // 위치, 블루투스 활성화상태 뷰
     private lateinit var gpsActivationView: TextView
@@ -99,6 +117,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         // activity_main을 현재 액티비티 뷰 설정
         setContentView(R.layout.activity_main)
+
+        // 주기적으로 방 정보를 받아오기
+        job = startRepeatingJob(5000L) {
+            fetchDataFromFirestore()
+        }
+
+        // 나, 상대방 상하의 뷰
+        myCoatTextView = findViewById(R.id.myCoat)
+        myPantsTextView = findViewById(R.id.myPants)
+        partnerCoatTextView = findViewById(R.id.partnerCoat)
+        partnerPantsTextView = findViewById(R.id.partnerPants)
 
         // 위치, 블루투스 활성화여부 뷰
         gpsActivationView = findViewById(R.id.gpsActivationStatus)
@@ -154,6 +183,70 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         startTime = 5;
         timerTextView = findViewById(R.id.remainingTimeView)
         startTimer()
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        // Activity가 파괴될 때 Coroutine을 취소합니다.
+        job.cancel()
+    }
+
+    private fun fetchDataFromFirestore() {
+        db.collection("rooms").document("QyFo5Z9zejFqEhydbL2c")
+            .get()
+            .addOnSuccessListener { document ->
+                // 데이터 처리
+                roomData = document.data as Map<String, Object>
+                Log.d("방 정보", "${roomData}")
+                roomData.forEach { (name, attributes) ->
+                    if (name != "영탁") {
+                        // 상대방 정보
+                        val other_data = attributes as Map<String, Any>
+                        Log.d("상대방 정보", "${other_data}")
+
+                        // 상대방 상하의 정보
+                        partnerCoatTextView.text = "" + other_data.get("coats")
+                        partnerPantsTextView.text = "" + other_data.get("pants")
+
+//                        // 상대방 위치정보
+//                        val other_latLng = LatLng(
+//                            other_data.get("lat") as Double,
+//                            other_data.get("lng") as Double
+//                        )
+//
+//                        Log.d("상대방 위치", "${other_latLng}")
+//                        if (other_currentLocationMarker == null) { // 상대의 마커를 최초롤 세팅하는 경우
+//                            // 상대편 -> DB에서 가져온 이름으로 변경
+//                            val markerOptions = MarkerOptions().position(other_latLng).title(name)
+//                            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.main_other_location_icon)) // 이미지 설정
+//                            other_currentLocationMarker = mGoogleMap.addMarker(markerOptions)
+//                            other_currentLocationMarker?.showInfoWindow()
+//                        } else {// 이미 마커가 있으면 위치만 업데이트
+//                            other_currentLocationMarker?.position = other_latLng
+//                        }
+                    } else {
+                        // 내 정보
+                        val my_data = attributes as Map<String, Any>
+                        Log.d("내 정보", "${my_data}")
+
+                        // 내 상하의 정보
+                        myCoatTextView.text = "" + my_data.get("coats")
+                        myPantsTextView.text = "" + my_data.get("pants")
+
+                    }
+                }
+            }.addOnFailureListener { exception ->
+                // 오류를 처리합니다.
+                exception.printStackTrace()
+            }
+    }
+
+    private fun startRepeatingJob(timeInterval: Long, action: () -> Unit): Job {
+        return CoroutineScope(Dispatchers.Main).launch {
+            while (isActive) {
+                action()
+                delay(timeInterval)
+            }
+        }
     }
 
     // 위치, 블루투스 리시버 등록 및 해제
