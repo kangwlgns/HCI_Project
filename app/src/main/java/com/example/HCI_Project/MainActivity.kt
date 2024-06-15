@@ -50,6 +50,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.location.LocationManager
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.ParcelUuid
@@ -483,15 +484,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // 링크 공유 버튼 처리
         val shareButton: Button = findViewById(R.id.shareButton)
         shareButton.setOnClickListener {
-            val intent = Intent(Intent.ACTION_SEND)
-            intent.type = "text/plain"
-
-            val url = "exampleURL"
-            val content = "링크를 클릭하여 위치 공유에 참여하세요"
-            intent.putExtra(Intent.EXTRA_TEXT, "$content\n\n$url")
-
-            val chooserTitle = "링크 공유하기"
-            startActivity(Intent.createChooser(intent, chooserTitle))
+            // 방 ID를 포함한 딥링크를 공유하는 창 띄우기
+            val deepLinkUri = Uri.parse("https://www.locashare.com/room/$roomId")
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, deepLinkUri.toString())
+                type = "text/plain"
+            }
+            startActivity(Intent.createChooser(shareIntent, "링크 공유하기"))
         }
         // 나가기 버튼 처리
         val outButton: Button = findViewById(R.id.materialButton)

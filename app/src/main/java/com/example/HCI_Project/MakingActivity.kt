@@ -21,7 +21,10 @@ class MakingActivity : AppCompatActivity() {
     val TAG = "HCHI"
     var isMale: Int = 0;
     var curTime: String = "10";
+<<<<<<< HEAD
     var code: String = "dsMachJ7AV";
+=======
+>>>>>>> 959ff1205c71c19edefbc252e570e83a19d97cf9
     val buttonStates: Array<Int> = arrayOf(
         R.drawable.making_male_on,
         R.drawable.making_male_off,
@@ -106,6 +109,16 @@ class MakingActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.makingButton).setOnClickListener {
+<<<<<<< HEAD
+=======
+            // StartActivity에서 넘겨준 ROOMID가 없는 경우(처음 방을 생성하는 경우)
+            var roomId = intent.getStringExtra("ROOM_ID")
+
+            if (roomId == null) {
+                roomId = getRandomString(10)
+            }
+            val db = Firebase.firestore
+>>>>>>> 959ff1205c71c19edefbc252e570e83a19d97cf9
             val tmp = mutableMapOf(
                 "coats" to findViewById<EditText>(R.id.clothesInfo).text.toString(),
                 "pants" to findViewById<EditText>(R.id.pantsInfo).text.toString(),
@@ -118,7 +131,11 @@ class MakingActivity : AppCompatActivity() {
             val nickname = findViewById<EditText>(R.id.nickName).text.toString()
             myInfoMap[nickname] = tmp
 
+<<<<<<< HEAD
             db.collection("rooms").document(code).set(myInfoMap, SetOptions.merge())
+=======
+            db.collection("rooms").document(roomId).set(myInfoMap)
+>>>>>>> 959ff1205c71c19edefbc252e570e83a19d97cf9
 
             val intent = Intent(this, MainActivity::class.java)
             intent.putExtra("IS_MALE", isMale)
@@ -126,7 +143,7 @@ class MakingActivity : AppCompatActivity() {
             intent.putExtra("CLOTHES", findViewById<EditText>(R.id.clothesInfo).text.toString())
             intent.putExtra("PANTS", findViewById<EditText>(R.id.pantsInfo).text.toString())
             intent.putExtra("NICKNAME", findViewById<EditText>(R.id.nickName).text.toString())
-            intent.putExtra("ROOM_ID", code)
+            intent.putExtra("ROOM_ID", roomId)
 
             startActivity(intent)
         }
