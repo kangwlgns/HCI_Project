@@ -38,11 +38,7 @@ class StartingActivity : AppCompatActivity() {
 
         val myButton: Button = findViewById(R.id.enterButton)
 
-<<<<<<< HEAD
-        // TODO 링크를 통해서 code 받아오기
-=======
         handleDeepLink(intent)  // 딥링크 로직
->>>>>>> 959ff1205c71c19edefbc252e570e83a19d97cf9
 
         myButton.setOnClickListener {
             // 두번째 페이지로 변경 필요

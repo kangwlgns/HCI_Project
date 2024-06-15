@@ -21,10 +21,6 @@ class MakingActivity : AppCompatActivity() {
     val TAG = "HCHI"
     var isMale: Int = 0;
     var curTime: String = "10";
-<<<<<<< HEAD
-    var code: String = "dsMachJ7AV";
-=======
->>>>>>> 959ff1205c71c19edefbc252e570e83a19d97cf9
     val buttonStates: Array<Int> = arrayOf(
         R.drawable.making_male_on,
         R.drawable.making_male_off,
@@ -45,17 +41,21 @@ class MakingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.making_main)
 
-        // TODO room_id를 받아오자.
-        // 아니라면 랜덤 코드 생성
-
         // db를 확인해서 room_id의 데이터 개수 확인.
         val db = Firebase.firestore
         var fieldsCount = 0
 
+        // roomId 받아오기
+        var roomId = intent.getStringExtra("ROOM_ID")
+        if (roomId == null) {
+            // 없으면 랜덤 코드 생성
+            roomId = getRandomString(10)
+        }
+
         // db에 요소가 2개 이상인 경우, 방 입장 불가능하도록.
         runBlocking {
             try {
-                val doc = db.collection("rooms").document(code).get().await()
+                val doc = db.collection("rooms").document(roomId).get().await()
                 if (doc.exists()) {
                     fieldsCount = doc.data?.size ?: 0
                 } else {
@@ -109,16 +109,6 @@ class MakingActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.makingButton).setOnClickListener {
-<<<<<<< HEAD
-=======
-            // StartActivity에서 넘겨준 ROOMID가 없는 경우(처음 방을 생성하는 경우)
-            var roomId = intent.getStringExtra("ROOM_ID")
-
-            if (roomId == null) {
-                roomId = getRandomString(10)
-            }
-            val db = Firebase.firestore
->>>>>>> 959ff1205c71c19edefbc252e570e83a19d97cf9
             val tmp = mutableMapOf(
                 "coats" to findViewById<EditText>(R.id.clothesInfo).text.toString(),
                 "pants" to findViewById<EditText>(R.id.pantsInfo).text.toString(),
@@ -131,11 +121,8 @@ class MakingActivity : AppCompatActivity() {
             val nickname = findViewById<EditText>(R.id.nickName).text.toString()
             myInfoMap[nickname] = tmp
 
-<<<<<<< HEAD
-            db.collection("rooms").document(code).set(myInfoMap, SetOptions.merge())
-=======
-            db.collection("rooms").document(roomId).set(myInfoMap)
->>>>>>> 959ff1205c71c19edefbc252e570e83a19d97cf9
+            // deeplink로 roomId를 받아오는 구문이 필요할 듯
+            db.collection("rooms").document(roomId).set(myInfoMap, SetOptions.merge())
 
             val intent = Intent(this, MainActivity::class.java)
             intent.putExtra("IS_MALE", isMale)
