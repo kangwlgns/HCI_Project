@@ -1,4 +1,4 @@
-package com.hci.hci_project
+package com.example.HCI_Project
 
 import android.content.Context
 import android.widget.Button

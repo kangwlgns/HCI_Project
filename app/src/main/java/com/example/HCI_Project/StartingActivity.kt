@@ -14,6 +14,7 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.example.HCI_Project.MakingActivity
 
 
 class StartingActivity : AppCompatActivity() {
@@ -24,7 +25,6 @@ class StartingActivity : AppCompatActivity() {
         R.drawable.starting_guideimg3,
         R.drawable.starting_guideimg4
     )
-    private var code: String = ""
 
     //starting_guidpage1
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,21 +39,17 @@ class StartingActivity : AppCompatActivity() {
 
         // TODO 링크를 통해서 code 받아오기
 
-        if (code == "") {
-            code = generateRandomString(10)
-        }
-
         myButton.setOnClickListener {
             // 두번째 페이지로 변경 필요
-            val intent = Intent(this, MainActivity::class.java)
-            intent.putExtra("CODE", code)
+
+            val intent = Intent(this, MakingActivity::class.java)
+            intent.putExtra("CODE", "")
             startActivity(intent)
         }
 
         findViewById<ImageView>(R.id.guideX).setOnClickListener {
-            findViewById<FrameLayout>(R.id.guideGroup).visibility = View.INVISIBLE
+            findViewById<androidx.constraintlayout.widget.ConstraintLayout>(R.id.guideGroup).visibility = View.INVISIBLE
         }
-
     }
 
     fun generateRandomString(length: Int): String {
