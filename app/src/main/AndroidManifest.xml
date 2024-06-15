@@ -56,7 +56,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="https"
-                    android:host="www.locashare.com"
+                    android:host="www.hciproject.com"
                     android:pathPattern="/room/.*" />
             </intent-filter>
         </activity>

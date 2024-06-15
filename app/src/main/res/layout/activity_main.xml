@@ -42,7 +42,6 @@
 
             <!-- 공유 버튼-->
             <!-- 시간 연장 -->
-
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/toggleButton"
                 android:layout_width="wrap_content"
@@ -75,6 +74,23 @@
                 app:layout_constraintBottom_toBottomOf="@+id/mapView"
                 app:layout_constraintVertical_bias="0.98"
                 app:layout_constraintHorizontal_bias="0.65"
+                />
+
+            <Button
+                android:id="@+id/add5Min"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="#f8f0fc"
+                android:text="5분 연장"
+                android:textColor="@color/black"
+                app:backgroundTint="@color/white"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/remainingTimeView"
+                app:strokeColor="@color/black"
+                app:strokeWidth="2px"
+                android:onClick="add5Minutes"
+                android:visibility="invisible"
                 />
 
             <!-- 남은 시간 -->
@@ -111,6 +127,23 @@
                 app:layout_constraintVertical_bias="0.01"
                 app:layout_constraintHorizontal_bias="1"
                 />
+
+            <TextView
+                android:id="@+id/alertMessage1"
+                android:layout_width="386dp"
+                android:layout_height="60dp"
+                android:text="TextView"
+                android:gravity="center"
+                android:textSize="18sp"
+                android:textColor="#ffffff"
+                android:background="#66000000"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.48"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.147"
+                android:visibility="invisible" />
 
 
         </androidx.constraintlayout.widget.ConstraintLayout>
