@@ -346,7 +346,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 quitActivity()
             }
             .setNegativeButton("5분 연장하기") { dialog, which ->
-                findViewById<Button>(R.id.add5Min).performClick()
+                add5Minutes()
             }
             .show()
     }
@@ -716,7 +716,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     // 시간 5분 연장 기능
-    fun add5Minutes(view: View) {
+    fun add5Minutes() {
         // 현재 남은 시간에 5분 추가 후 카운트다운 재시작
         timeRemainingInMillis += 5 * 60000 // 5분을 밀리초로 변환하여 추가
         if (timeRemainingInMillis >= 60*60000) {  timeRemainingInMillis = 60*60000 }
