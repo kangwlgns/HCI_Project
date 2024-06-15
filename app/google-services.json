@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "170984379718",
-    "project_id": "hci-test-database",
-    "storage_bucket": "hci-test-database.appspot.com"
+    "project_number": "483158329265",
+    "project_id": "hci-test-99281",
+    "storage_bucket": "hci-test-99281.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:170984379718:android:6500a3478b59afbaadc147",
+        "mobilesdk_app_id": "1:483158329265:android:48de2bcf2db6163f3d9f90",
         "android_client_info": {
           "package_name": "com.example.HCI_Project"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBbC3OL4sNK95BnX7OpFy7TVxdLaka2pzA"
+          "current_key": "AIzaSyDx8cu_AcpjXRANrxwU5FM0mNMqDJOJNl4"
         }
       ],
       "services": {
