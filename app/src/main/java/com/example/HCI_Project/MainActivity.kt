@@ -197,14 +197,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
-
+            Log.d("수신", "시도")
             super.onScanResult(callbackType, result)
             // TEST 필요
-            if(result == null){
-                Log.d("ㅎㅇ","주변에 없는 듯하다.")
-                db.collection("rooms").document(roomId)
-                    .update("${myNickname}.foundPartner", false)
-            }
+
             result?.let {
                 // result is not null
                 if (ActivityCompat.checkSelfPermission(
@@ -217,7 +213,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 //스캔 성공시 실행되는 코드나 함수가 있어야함
                 // Advertising 데이터에 포함된 서비스 UUID 확인
                 val uuids = result.scanRecord?.serviceUuids
-
 
                 if (uuids != null && uuids.contains(serviceUuid)) {
                     // Advertising 데이터 추출
@@ -235,8 +230,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                                 .update("${myNickname}.foundPartner", true)
                             foundpartnerflag = true
                             if (!gestureflag) { // 처음 감지 시에만 출력됨
+                                Log.d("제스처 선택", "창 뜨는게 맞음")
                                 showYesNoDialog()
                                 gestureflag = true
+                                startfindTimer()
                             }
                             if (canVibrate) {
                                 vibratePhone() //진동 일으킴
@@ -248,12 +245,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                                 }, 5000)
                             }
                         }
+                        runnable2?.let { handler.removeCallbacks(it) } // 타이머 초기화
+                        startfindTimer() // 타이머 다시 시작
                         Log.d("BluetoothAdvertising", "Received RoomID: $receivedString, Received UUID: $receivedUuid")
                     }
                 }
+
             }
         }
     }
+    private var runnable2: Runnable? = null
+    private fun startfindTimer() {
+        runnable2 = Runnable {
+            // 5초 후에 실행될 코드 작성
+            Log.d("ㅎㅇ","주변에 없는 듯하다.")
+            db.collection("rooms").document(roomId)
+                .update("${myNickname}.foundPartner", false)
+        }
+        handler.postDelayed(runnable2!!, 5000)
+    }
+
     // 제스처 선택
     private fun showYesNoDialog() {
         val options = arrayOf("왼손으로 머리 긁기", "오른손으로 오른쪽 귀 잡기", "제스처를 취하지 않기")
@@ -592,6 +603,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         // 상대방 상하의 정보
                         partnerCoatTextView.text = "" + other_data.get("coats")
                         partnerPantsTextView.text = "" + other_data.get("pants")
+                        // 상대편 -> DB에서 가져온 이름으로 변경
+                        val isMale = other_data.get("isMale")
+                        val genderText = when (isMale.toString().toInt()) {
+                            1 -> " (남)"
+                            -1 -> " (여)"
+                            else -> ""
+                        }
+                        findViewById<TextView>(R.id.partnerName).text = name + genderText
+//                      Log.d("상대방 성별", "isMale: $isMale, genderText: $genderText")
 
                     } else {
                         // 내 정보
@@ -894,17 +914,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                             )
                             current_latLng_other = other_latLng
                             Log.d("상대방 위치", "${other_latLng}")
-                            val partnerNameTextView = findViewById<TextView>(R.id.partnerName)
                             if (other_currentLocationMarker == null) { // 상대의 마커를 최초로 세팅하는 경우
-                                // 상대편 -> DB에서 가져온 이름으로 변경
-                                val isMale = other_data.get("isMale") as? Int ?: 0
-                                val genderText = when (isMale) {
-                                    1 -> " (남)"
-                                    -1 -> " (여)"
-                                    else -> ""
-                                }
-                                partnerNameTextView.text = name + genderText
-                                Log.d("상대방 성별", "isMale: $isMale, genderText: $genderText")
                                 val markerOptions =
                                     MarkerOptions().position(other_latLng).title(name)
                                 markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.main_other_location_icon)) // 이미지 설정
@@ -964,7 +974,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     var foundpartnerflag = false
     // 상대방 입장에 따라 상태를 수정하는 함수
     fun enter_partner(num_person : Int) {
-        if (foundpartnerflag == true) { return }
+        if (foundpartnerflag == true) {
+            if (num_person == 1) {
+                findViewById<ConstraintLayout>(R.id.partnerInfoLayout).visibility= View.INVISIBLE
+            }else {
+                findViewById<ConstraintLayout>(R.id.partnerInfoLayout).visibility= View.VISIBLE
+            }
+            return
+        }
         if( num_person == 2) {
             findViewById<TextView>(R.id.partnerStatusTextView).text = "상대방과 위치를 공유하고 있어요"
             // 상대 정보 출력
@@ -996,6 +1013,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         ) {
             //권한 없을시 하는 코드임 일단 비워둠
         }
+        Log.d("송신", "시도")
         bluetoothLeAdvertiser?.startAdvertising(settings, data, advertisingCallback)
     }
 
