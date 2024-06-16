@@ -15,6 +15,7 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
@@ -90,6 +91,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var partnerCoatTextView: TextView
     private lateinit var partnerPantsTextView: TextView
 
+    // 지도 위 메시지창
+    private lateinit var alertMessageTextView: TextView
+
     // 위치, 블루투스 활성화상태 뷰
     private lateinit var gpsActivationView: TextView
     private lateinit var bluetoothActivationView: TextView
@@ -109,6 +113,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var bluetoothLeAdvertiser: BluetoothLeAdvertiser? = null
     private val serviceUuid = ParcelUuid.fromString("0000BBBB-0000-1000-8000-00805F9B34FB") // 자신의 서비스 UUID로 변경
+
+    private var gestureflag = false
 
     // BroadcastReceiver를 정의하여 블루투스와 위치 서비스 상태 변경을 감지
     private val bluetoothReceiver = object : BroadcastReceiver() {
@@ -191,7 +197,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
+
             super.onScanResult(callbackType, result)
+            // TEST 필요
+            if(result == null){
+                Log.d("ㅎㅇ","주변에 없는 듯하다.")
+                db.collection("rooms").document(roomId)
+                    .update("${myNickname}.foundPartner", false)
+            }
             result?.let {
                 // result is not null
                 if (ActivityCompat.checkSelfPermission(
@@ -204,6 +217,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 //스캔 성공시 실행되는 코드나 함수가 있어야함
                 // Advertising 데이터에 포함된 서비스 UUID 확인
                 val uuids = result.scanRecord?.serviceUuids
+
+
                 if (uuids != null && uuids.contains(serviceUuid)) {
                     // Advertising 데이터 추출
                     val serviceData = result.scanRecord?.getServiceData(serviceUuid)
@@ -213,11 +228,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         val receivedUuid = result.device?.address ?: ""
 
                         // 수신한 데이터 처리
-
                         if (receivedString == roomId) { //수정이 필요함
+                            // 상대 기기가 감지됨
+                            // DB foundPartner = true 로 설정
+                            db.collection("rooms").document(roomId)
+                                .update("${myNickname}.foundPartner", true)
+                            foundpartnerflag = true
+                            if (!gestureflag) { // 처음 감지 시에만 출력됨
+                                showYesNoDialog()
+                                gestureflag = true
+                            }
                             if (canVibrate) {
                                 vibratePhone() //진동 일으킴
-                                Toast.makeText(this@MainActivity, "근처에 사용자가 존재합니다.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@MainActivity, "근처에 상대방이 존재합니다.", Toast.LENGTH_SHORT).show()
                                 // 5초간 진동 및 알림 중지
                                 canVibrate = false
                                 Handler(Looper.getMainLooper()).postDelayed({
@@ -230,6 +253,38 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
         }
+    }
+    // 제스처 선택
+    private fun showYesNoDialog() {
+        val options = arrayOf("왼손으로 머리 긁기", "오른손으로 오른쪽 귀 잡기", "제스처를 취하지 않기")
+        var checkedItem = -1 // 초기 선택 항목 없음
+        val builder = AlertDialog.Builder(this@MainActivity)
+            .setTitle("상대방이 근처에 있어요. 자신을 표현할 제스처를 선택 후 제스처를 취해주세요") // 제목 설정
+            .setSingleChoiceItems(options, checkedItem) { dialog, which ->
+                // 선택된 옵션에 따라 동작 수행
+                checkedItem = which
+            }
+            .setPositiveButton("확인") { dialog, _ ->
+                // OK 버튼 클릭 시 동작
+                if (checkedItem != -1) {
+                    Toast.makeText(this@MainActivity, "${options[checkedItem]} 선택", Toast.LENGTH_SHORT).show()
+                }
+                val db = Firebase.firestore
+                db.collection("rooms").document(roomId)
+                    .update("${myNickname}.selectedGesture", checkedItem)
+                val gestureText = when (checkedItem) {
+                    0 -> "왼손으로 머리를 긁어 주세요."
+                    1 -> "오른손으로 오른쪽 귀를 잡아주세요."
+                    else -> "상대방이 근처에 있어요. 잘 찾아보세요."
+                }
+                findViewById<TextView>(R.id.partnerStatusTextView).text = gestureText
+                dialog.dismiss() // AlertDialog 닫기
+            }
+
+        // AlertDialog 표시
+        val dialog = builder.create()
+        dialog.show()
+        Log.d("AlertDialog", "옵션: ${options.joinToString()}")
     }
 
     // Bluetooth 스캔 함수를 블루투스 전통 스캔으로 변경
@@ -352,6 +407,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
+
     private val locationReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == LocationManager.PROVIDERS_CHANGED_ACTION) {
@@ -403,6 +459,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         myNameView = findViewById(R.id.myName)
         partnerNameView = findViewById(R.id.partnerName)
+        alertMessageTextView = findViewById(R.id.alertMessage1)
 
         // BluetoothAdapter 초기화
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -417,13 +474,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
         registerReceiver(bluetoothReceiver, filter)
 
-        // 권한 확인 및 요청
-        if (!hasPermissions(this, permissions)) {
-            ActivityCompat.requestPermissions(this, permissions, REQUEST_ALL_PERMISSION)
-        } else {
-            startAdvertising()
-            scanDevice(true)
-        }
+
         // 방 ID
         roomId = intent.getStringExtra("ROOM_ID").toString()
 
@@ -436,6 +487,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             if(roomId !== null) {
                 fetchDataFromFirestore(roomId)
             }
+        }
+
+        // 권한 확인 및 요청
+        if (!hasPermissions(this, permissions)) {
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_ALL_PERMISSION)
+        } else {
+            // TEST : 아래 로그 제거 필요
+            Log.d("송신 전 RoomID", roomId)
+            startAdvertising()
+            // TEST : 아래 로그 제거 필요
+            Log.d("송신 후 RoomID", roomId)
+            scanDevice(true)
         }
 
         // 나, 상대방 상하의 뷰
@@ -485,7 +548,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         val shareButton: Button = findViewById(R.id.shareButton)
         shareButton.setOnClickListener {
             // 방 ID를 포함한 딥링크를 공유하는 창 띄우기
-            val deepLinkUri = Uri.parse("https://www.locashare.com/room/$roomId")
+            val deepLinkUri = Uri.parse("https://www.hciproject.com/room/$roomId")
             val shareIntent = Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, deepLinkUri.toString())
@@ -530,22 +593,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         partnerCoatTextView.text = "" + other_data.get("coats")
                         partnerPantsTextView.text = "" + other_data.get("pants")
 
-//                        // 상대방 위치정보
-//                        val other_latLng = LatLng(
-//                            other_data.get("lat") as Double,
-//                            other_data.get("lng") as Double
-//                        )
-//
-//                        Log.d("상대방 위치", "${other_latLng}")
-//                        if (other_currentLocationMarker == null) { // 상대의 마커를 최초롤 세팅하는 경우
-//                            // 상대편 -> DB에서 가져온 이름으로 변경
-//                            val markerOptions = MarkerOptions().position(other_latLng).title(name)
-//                            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.main_other_location_icon)) // 이미지 설정
-//                            other_currentLocationMarker = mGoogleMap.addMarker(markerOptions)
-//                            other_currentLocationMarker?.showInfoWindow()
-//                        } else {// 이미 마커가 있으면 위치만 업데이트
-//                            other_currentLocationMarker?.position = other_latLng
-//                        }
                     } else {
                         // 내 정보
                         val my_data = attributes as Map<String, Any>
@@ -847,16 +894,52 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                             )
                             current_latLng_other = other_latLng
                             Log.d("상대방 위치", "${other_latLng}")
+                            val partnerNameTextView = findViewById<TextView>(R.id.partnerName)
                             if (other_currentLocationMarker == null) { // 상대의 마커를 최초로 세팅하는 경우
                                 // 상대편 -> DB에서 가져온 이름으로 변경
+                                val isMale = other_data.get("isMale") as? Int ?: 0
+                                val genderText = when (isMale) {
+                                    1 -> " (남)"
+                                    -1 -> " (여)"
+                                    else -> ""
+                                }
+                                partnerNameTextView.text = name + genderText
+                                Log.d("상대방 성별", "isMale: $isMale, genderText: $genderText")
                                 val markerOptions =
                                     MarkerOptions().position(other_latLng).title(name)
                                 markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.main_other_location_icon)) // 이미지 설정
                                 other_currentLocationMarker = mGoogleMap.addMarker(markerOptions)
                                 other_currentLocationMarker?.showInfoWindow()
                             } else {// 이미 마커가 있으면 위치만 업데이트
+                                Log.d("마커 업데이트 ", "ㅇㅇ")
                                 other_currentLocationMarker?.position = other_latLng
+                                val foundPartner = other_data.get("foundPartner")
+                                val partnerGesture = other_data.get("selectedGesture")
+                                // case 정리는 나중에
+                                if (foundPartner == null && partnerGesture == null) {
+                                    alertMessageTextView.visibility = View.INVISIBLE
+                                } else if (foundPartner == true && partnerGesture == null) {
+                                    alertMessageTextView.text = "상대방이 가까이 있어요."
+                                    alertMessageTextView.visibility = View.VISIBLE
+                                } else if (foundPartner == true && partnerGesture != null) {
+                                    val gestureText = when (partnerGesture.toString().toInt()) {
+                                        0 -> "머리를 왼손으로 긁고 있는 사람을 찾아보세요."
+                                        1 -> "오른쪽 귀를 오른손으로 잡고 있는 사람을 찾아보세요."
+                                        else -> "상대방이 근처에 있어요. 잘 찾아보세요."
+                                    }
+                                    alertMessageTextView.text = gestureText
+                                    Log.d("상대방 제스처1", partnerGesture.toString())
+                                    Log.d("상대방 제스처2", gestureText)
+                                    alertMessageTextView.visibility = View.VISIBLE
+                                } else if (foundPartner == false && partnerGesture != null) {
+                                    alertMessageTextView.text = "상대방과 멀어진거 같아요."
+                                    alertMessageTextView.visibility = View.VISIBLE
+                                } else {
+                                    alertMessageTextView.visibility = View.INVISIBLE
+                                }
+
                             }
+                            // 거리 계산
                             var between_distance = calculateDistance(current_latLng , current_latLng_other)
                             if(between_distance >= 1) {
                                 findViewById<TextView>(R.id.nearingStatus).text = String.format("%.2fkm", between_distance)
@@ -878,11 +961,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 println("get failed with ${exception}")
             }
     }
+    var foundpartnerflag = false
+    // 상대방 입장에 따라 상태를 수정하는 함수
     fun enter_partner(num_person : Int) {
+        if (foundpartnerflag == true) { return }
         if( num_person == 2) {
             findViewById<TextView>(R.id.partnerStatusTextView).text = "상대방과 위치를 공유하고 있어요"
+            // 상대 정보 출력
             findViewById<ConstraintLayout>(R.id.partnerInfoLayout).visibility= View.VISIBLE
         }else {
+            // 상대 정보 미출력
             findViewById<TextView>(R.id.partnerStatusTextView).text = "상대방의 입장을 기다리고 있어요"
             findViewById<ConstraintLayout>(R.id.partnerInfoLayout).visibility= View.INVISIBLE
         }
